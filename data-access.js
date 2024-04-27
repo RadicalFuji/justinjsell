@@ -4,15 +4,16 @@ const dbName = 'custdb';
 const baseUrl = "mongodb://127.0.0.1:27017";
 const collectionName = "customers"
 const connectString = baseUrl + "/" + dbName;
-const apiKey = "test";
 let collection;
 
+//Connect to MongoDB
 async function dbStartup() {
     const client = new MongoClient(connectString);
     await client.connect();
     collection = client.db(dbName).collection(collectionName);
 }
 
+//Retrieve all entries from database
 async function getCustomers() {
     try {
         const customers = await collection.find().toArray();
@@ -22,6 +23,8 @@ async function getCustomers() {
         return [null, err.message];
     }
 }
+
+//Revert data to default
 
 async function resetCustomers() {
     let data = [{ "id": 0, "name": "Mary Jackson", "email": "maryj@abc.com", "password": "maryj" },
@@ -40,6 +43,7 @@ async function resetCustomers() {
     }
 }
 
+//Add new customer
 async function addCustomer(newCustomer) {
     try {
         const insertResult = await collection.insertOne(newCustomer);
@@ -51,6 +55,7 @@ async function addCustomer(newCustomer) {
     }
 }
 
+//Search for customer by ID
 async function getCustomerById(id) {
     try {
         const customer = await collection.findOne({"id": +id});
@@ -65,6 +70,7 @@ async function getCustomerById(id) {
     }
 }
 
+//Update customer information
 async function updateCustomer(updatedCustomer) {
     try {
         const filter = { "id": updatedCustomer.id };
@@ -79,6 +85,7 @@ async function updateCustomer(updatedCustomer) {
     }
 }
 
+//Delete customer using ID
 async function deleteCustomerById(id) {
     try {
         const deleteResult = await collection.deleteOne({ "id": +id });
@@ -96,26 +103,23 @@ async function deleteCustomerById(id) {
     }
 }
 
-async function checkAPIKey(req, res, next) {
+//Search for customers by URL endpoints
+async function findCustomers(filterObject) {
     try {
-        const apiKeyHeader = req.headers['x-api-key'];
-        const expectedAPIKey = process.env.API_KEY;
-
-        if (!apiKeyHeader) {
-            res.status(401).send("API Key is missing");
-            return;
+        const customers = await collection.find(filterObject).toArray();
+        // return array [customer, errMessage]
+        if(!customers|| customers.length == 0 ){
+          return [ null, "no customer documents found"];
         }
-
-        if (apiKeyHeader !== expectedAPIKey) {
-            res.status(403).send("API Key is invalid");
-            return;
-        }
-        next();
+        return [customers, null];
     } catch (err) {
         console.log(err.message);
         return [null, err.message];
     }
 }
 
+//Start database connection
 dbStartup();
-module.exports = { getCustomers, resetCustomers, addCustomer, getCustomerById, updateCustomer, deleteCustomerById, apiKey, checkAPIKey };
+
+//Export functions
+module.exports = { getCustomers, resetCustomers, addCustomer, getCustomerById, updateCustomer, deleteCustomerById, findCustomers};
